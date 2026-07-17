@@ -1,0 +1,111 @@
+# go-task front-end for common workflows (https://taskfile.dev).
+# This is a thin, discoverable wrapper over the pnpm scripts — package.json
+# stays the single source of truth. Run `task` (or `task --list`) to see all.
+version: "3"
+
+vars:
+  PNPM: corepack pnpm
+
+tasks:
+  default:
+    desc: List available tasks
+    cmds:
+      - task --list
+    silent: true
+
+  install:
+    desc: Install workspace dependencies
+    cmds:
+      - "{{.PNPM}} install"
+
+  dev:
+    desc: Run the desktop app in dev mode
+    cmds:
+      - "{{.PNPM}} dev:desktop"
+
+  dev:server:
+    desc: Run the server in dev mode
+    cmds:
+      - "{{.PNPM}} dev:server"
+
+  dev:web:
+    desc: Run the web client in dev mode
+    cmds:
+      - "{{.PNPM}} dev:web"
+
+  typecheck:
+    desc: Typecheck every package
+    cmds:
+      - "{{.PNPM}} typecheck"
+
+  lint:
+    desc: Lint the workspace
+    cmds:
+      - "{{.PNPM}} lint"
+
+  fmt:
+    desc: Format the workspace
+    cmds:
+      - "{{.PNPM}} fmt"
+
+  fmt:check:
+    desc: Check formatting without writing changes
+    cmds:
+      - "{{.PNPM}} fmt:check"
+
+  test:
+    desc: Run the full test suite
+    cmds:
+      - "{{.PNPM}} test"
+
+  test:desktop-smoke:
+    desc: Build and smoke-test the desktop app
+    cmds:
+      - "{{.PNPM}} test:desktop-smoke"
+
+  test:pi-live:
+    desc: Run the live pi end-to-end test (requires pi authenticated via `pi` + /login)
+    cmds:
+      - "PI_LIVE_TEST=1 {{.PNPM}} --filter t3 test piProvider.live"
+
+  check:
+    desc: Pre-push gate — typecheck, lint, and test
+    cmds:
+      - task: typecheck
+      - task: lint
+      - task: test
+
+  build:
+    desc: Build all apps and packages
+    cmds:
+      - "{{.PNPM}} build"
+
+  build:desktop:
+    desc: Build the desktop app (server + web + electron)
+    cmds:
+      - "{{.PNPM}} build:desktop"
+
+  dist:linux:
+    desc: Package the Linux AppImage (x64)
+    cmds:
+      - "{{.PNPM}} dist:desktop:linux"
+
+  dist:mac:
+    desc: Package the macOS DMG (current arch)
+    cmds:
+      - "{{.PNPM}} dist:desktop:dmg"
+
+  dist:win:
+    desc: Package the Windows NSIS installer
+    cmds:
+      - "{{.PNPM}} dist:desktop:win"
+
+  release:smoke:
+    desc: Run release smoke checks
+    cmds:
+      - "{{.PNPM}} release:smoke"
+
+  clean:
+    desc: Remove node_modules and build outputs
+    cmds:
+      - "{{.PNPM}} clean"
