@@ -62,6 +62,7 @@ const runtimeMock = {
     notifications: [] as Array<Record<string, unknown>>,
     closeCalls: [] as Array<string | undefined>,
     beforeGetStateResponse: [] as Array<Effect.Effect<void>>,
+    beforeAbortResponse: [] as Array<Effect.Effect<void>>,
     spawnSignals: [] as Array<Deferred.Deferred<void>>,
     spawnFailures: [] as Array<PiRuntimeError | null | undefined>,
     stderrByHandle: [] as Array<string | undefined>,
@@ -89,6 +90,7 @@ const runtimeMock = {
     this.state.notifications.length = 0;
     this.state.closeCalls.length = 0;
     this.state.beforeGetStateResponse.length = 0;
+    this.state.beforeAbortResponse.length = 0;
     this.state.spawnSignals.length = 0;
     this.state.spawnFailures.length = 0;
     this.state.stderrByHandle.length = 0;
@@ -141,8 +143,11 @@ const PiRuntimeTestDouble: PiRuntimeShape = {
             if (type === "prompt" && runtimeMock.state.promptError) {
               return yield* runtimeMock.state.promptError;
             }
-            if (type === "abort" && runtimeMock.state.abortError) {
-              return yield* runtimeMock.state.abortError;
+            if (type === "abort") {
+              yield* runtimeMock.state.beforeAbortResponse[handleIndex] ?? Effect.void;
+              if (runtimeMock.state.abortError) {
+                return yield* runtimeMock.state.abortError;
+              }
             }
             if (type === "set_thinking_level" && runtimeMock.state.thinkingError) {
               return yield* runtimeMock.state.thinkingError;
@@ -508,6 +513,57 @@ it.layer(PiAdapterTestLayer)("PiAdapterLive", (it) => {
       NodeAssert.equal(session?.status, "ready");
       NodeAssert.equal(session?.activeTurnId, undefined);
       NodeAssert.equal(commandType(runtimeMock.state.requests.at(-1) ?? {}), "abort");
+    }),
+  );
+
+  it.effect("suppresses turn.aborted when agent_end completes the turn during the interrupt", () =>
+    Effect.gen(function* () {
+      const adapter = yield* PiAdapter;
+      const threadId = asThreadId("thread-pi-interrupt-race");
+      const eventsFiber = yield* adapter.streamEvents.pipe(
+        Stream.filter((event) => event.threadId === threadId),
+        Stream.take(6),
+        Stream.runCollect,
+        Effect.forkChild,
+      );
+
+      yield* startPiSession(adapter, threadId);
+      const turn = yield* adapter.sendTurn({ threadId, input: "Start a long task" });
+      const handle = runtimeMock.state.handles[0];
+      if (!handle) throw new Error("missing fake Pi handle");
+      const abortGate = yield* Deferred.make<void>();
+      runtimeMock.state.beforeAbortResponse[0] = Deferred.await(abortGate);
+
+      const interruptFiber = yield* adapter.interruptTurn(threadId).pipe(Effect.forkChild);
+      yield* Effect.yieldNow;
+      yield* Effect.yieldNow;
+      yield* Queue.offer(handle.eventsQueue, { type: "agent_end" });
+      while (
+        (yield* adapter.listSessions()).find((entry) => entry.threadId === threadId)
+          ?.activeTurnId !== undefined
+      ) {
+        yield* Effect.yieldNow;
+      }
+      yield* Effect.yieldNow;
+      yield* Effect.yieldNow;
+      yield* Deferred.succeed(abortGate, undefined);
+      yield* Fiber.join(interruptFiber);
+      const secondTurn = yield* adapter.sendTurn({ threadId, input: "Follow up" });
+
+      const events = Array.from(yield* Fiber.join(eventsFiber));
+      NodeAssert.deepEqual(
+        events.map((event) => event.type),
+        [
+          "session.started",
+          "thread.started",
+          "turn.started",
+          "turn.completed",
+          "thread.token-usage.updated",
+          "turn.started",
+        ],
+      );
+      NodeAssert.equal(String(events[3]?.turnId), String(turn.turnId));
+      NodeAssert.equal(String(events.at(-1)?.turnId), String(secondTurn.turnId));
     }),
   );
 
@@ -1040,6 +1096,42 @@ it.layer(PiAdapterTestLayer)("PiAdapterLive", (it) => {
       NodeAssert.deepEqual(snapshot.turns[1]?.items, [
         { role: "user", content: "Now summarize" },
         { role: "assistant", content: "Summary." },
+      ]);
+    }),
+  );
+
+  it.effect("preserves non-text content block fields in readThread snapshots", () =>
+    Effect.gen(function* () {
+      const adapter = yield* PiAdapter;
+      const threadId = asThreadId("thread-pi-read-thread-content");
+      runtimeMock.state.messagesData = {
+        messages: [
+          { role: "user", content: "Show me the diagram" },
+          {
+            role: "toolResult",
+            content: [
+              {
+                type: "image",
+                data: "aGVsbG8=",
+                mimeType: "image/png",
+                filename: "diagram.png",
+              },
+            ],
+          },
+        ],
+      };
+      yield* startPiSession(adapter, threadId);
+
+      const snapshot = yield* adapter.readThread(threadId);
+
+      NodeAssert.deepEqual(snapshot.turns[0]?.items, [
+        { role: "user", content: "Show me the diagram" },
+        {
+          role: "toolResult",
+          content: [
+            { type: "image", data: "aGVsbG8=", mimeType: "image/png", filename: "diagram.png" },
+          ],
+        },
       ]);
     }),
   );

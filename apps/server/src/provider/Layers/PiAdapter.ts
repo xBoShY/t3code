@@ -1248,10 +1248,15 @@ export function makePiAdapter(piSettings: PiSettings, options?: PiAdapterLiveOpt
         yield* context.rpc
           .request({ type: "abort" }, { timeoutMs: 2_000 })
           .pipe(Effect.ignore({ log: true }));
+        // agent_end may complete the turn while we settle or await the abort
+        // RPC; it already emitted turn.completed, so don't emit a second
+        // terminal event for the same turn.
+        const turnCompletedMeanwhile =
+          abortedTurnId !== undefined && context.activeTurnId !== abortedTurnId;
         context.activeTurnId = undefined;
         context.lastStopReason = undefined;
         yield* updateProviderSession(context, { status: "ready" }, { clearActiveTurnId: true });
-        if (abortedTurnId) {
+        if (abortedTurnId && !turnCompletedMeanwhile) {
           yield* emit({
             ...(yield* buildEventBase({ threadId, turnId: abortedTurnId })),
             type: "turn.aborted",

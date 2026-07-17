@@ -156,12 +156,18 @@ const PiRpcResponseWithId = Schema.Struct({
   data: Schema.optionalKey(Schema.Unknown),
 });
 
-const PiContentBlock = Schema.Struct({
-  type: Schema.String,
-  text: Schema.optionalKey(Schema.String),
-  data: Schema.optionalKey(Schema.String),
-  mimeType: Schema.optionalKey(Schema.String),
-});
+// Open struct: Pi content blocks may carry fields beyond the ones we read
+// (e.g. image payloads); preserve them so readThread snapshots and tool
+// results survive decoding intact.
+const PiContentBlock = Schema.StructWithRest(
+  Schema.Struct({
+    type: Schema.String,
+    text: Schema.optionalKey(Schema.String),
+    data: Schema.optionalKey(Schema.String),
+    mimeType: Schema.optionalKey(Schema.String),
+  }),
+  [Schema.Record(Schema.String, Schema.Unknown)],
+);
 export type PiContentBlock = typeof PiContentBlock.Type;
 
 export const PiMessageContent = Schema.Union([Schema.String, Schema.Array(PiContentBlock)]);
