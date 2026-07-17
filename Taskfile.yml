@@ -33,6 +33,23 @@ tasks:
     cmds:
       - "{{.PNPM}} dev:web"
 
+  ensure:electron:
+    desc: Install the Electron runtime binary (one-time; idempotent)
+    cmds:
+      - "{{.PNPM}} --filter @t3tools/desktop ensure:electron"
+
+  start:desktop:
+    desc: Launch the built desktop app (run `task build:desktop` first)
+    deps:
+      - ensure:electron
+    cmds:
+      - "{{.PNPM}} start:desktop"
+
+  start:server:
+    desc: Launch the built server (t3 backend) from dist
+    cmds:
+      - "{{.PNPM}} start"
+
   typecheck:
     desc: Typecheck every package
     cmds:
