@@ -50,7 +50,6 @@ function connectionIdOf(target: ConnectionTarget): string | null {
     case "PrimaryConnectionTarget":
       return null;
     case "BearerConnectionTarget":
-    case "SshConnectionTarget":
       return target.connectionId;
   }
 }
@@ -105,15 +104,6 @@ export function registerConnectionInCatalog(
           connectionId: registration.target.connectionId,
           credential: registration.credential,
         }),
-      };
-    case "SshConnectionRegistration":
-      return {
-        ...next,
-        profiles: replaceCatalogValue(
-          next.profiles,
-          (value) => value.connectionId,
-          registration.profile,
-        ),
       };
   }
 }

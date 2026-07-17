@@ -2,8 +2,6 @@ import {
   BearerConnectionCredential,
   BearerConnectionProfile,
   BearerConnectionTarget,
-  SshConnectionProfile,
-  SshConnectionTarget,
 } from "@t3tools/client-runtime/connection";
 import {
   ConnectionCatalogDocument as RuntimeConnectionCatalogDocument,
@@ -280,7 +278,7 @@ const writeDocument = Effect.fn("desktop.connectionCatalogStore.writeDocument")(
   );
 });
 
-function connectionId(prefix: "bearer" | "ssh", environmentId: string): string {
+function connectionId(prefix: "bearer", environmentId: string): string {
   return `${prefix}:${environmentId}`;
 }
 
@@ -299,26 +297,6 @@ const migrateSavedEnvironmentRecords = Effect.fn(
   const credentials: Array<RuntimeConnectionCatalogDocumentType["credentials"][number]> = [];
 
   for (const record of records) {
-    if (record.desktopSsh !== undefined) {
-      const id = connectionId("ssh", record.environmentId);
-      targets.push(
-        new SshConnectionTarget({
-          environmentId: record.environmentId,
-          label: record.label,
-          connectionId: id,
-        }),
-      );
-      profiles.push(
-        new SshConnectionProfile({
-          connectionId: id,
-          environmentId: record.environmentId,
-          label: record.label,
-          target: record.desktopSsh,
-        }),
-      );
-      continue;
-    }
-
     const id = connectionId("bearer", record.environmentId);
     targets.push(
       new BearerConnectionTarget({

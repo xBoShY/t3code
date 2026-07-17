@@ -10,7 +10,6 @@ import {
   BearerConnectionCredential,
   BearerConnectionProfile,
   type ConnectionCatalogEntry,
-  SshConnectionProfile,
 } from "./catalog.ts";
 import * as ConnectionCredentialStore from "./credentialStore.ts";
 import { credentialMissingError, environmentMismatchError, profileMissingError } from "./errors.ts";
@@ -19,7 +18,6 @@ import type {
   ConnectionTarget,
   PreparedConnection,
   PrimaryConnectionTarget,
-  SshConnectionTarget,
 } from "./model.ts";
 import { ConnectionBlockedError, type ConnectionAttemptError } from "./model.ts";
 import * as ConnectionProfileStore from "./profileStore.ts";
@@ -34,7 +32,6 @@ export class ConnectionResolver extends Context.Service<
 >()("@t3tools/client-runtime/connection/resolver/ConnectionResolver") {}
 
 const isBearerProfile = Schema.is(BearerConnectionProfile);
-const isSshProfile = Schema.is(SshConnectionProfile);
 const isBearerCredential = Schema.is(BearerConnectionCredential);
 
 function primarySocketUrl(target: PrimaryConnectionTarget): string {
@@ -129,65 +126,9 @@ const makeBearerBroker = Effect.fn("clientRuntime.connection.broker.makeBearer")
   });
 });
 
-const makeSshBroker = Effect.fn("clientRuntime.connection.broker.makeSsh")(function* () {
-  const profiles = yield* ConnectionProfileStore.ConnectionProfileStore;
-  const ssh = yield* ClientCapabilities.SshEnvironmentGateway;
-  const remote = yield* RemoteEnvironmentAuthorization.RemoteEnvironmentAuthorization;
-
-  return Effect.fn("clientRuntime.connection.broker.ssh")(function* (
-    entry: ConnectionCatalogEntry & { readonly target: SshConnectionTarget },
-  ) {
-    const target = entry.target;
-    const profile = yield* Option.match(entry.profile, {
-      onNone: () => Effect.fail(profileMissingError(target.connectionId)),
-      onSome: Effect.succeed,
-    });
-    if (!isSshProfile(profile)) {
-      return yield* new ConnectionBlockedError({
-        reason: "configuration",
-        detail: `Connection profile ${target.connectionId} is not an SSH connection.`,
-      });
-    }
-    if (profile.environmentId !== target.environmentId) {
-      return yield* environmentMismatchError({
-        expected: target.environmentId,
-        actual: profile.environmentId,
-      });
-    }
-    const prepared = yield* ssh.prepare({
-      connectionId: target.connectionId,
-      expectedEnvironmentId: target.environmentId,
-      target: profile.target,
-    });
-    yield* profiles.put(
-      new SshConnectionProfile({
-        connectionId: profile.connectionId,
-        environmentId: profile.environmentId,
-        label: profile.label,
-        target: prepared.bootstrap.target,
-      }),
-    );
-    const authorized = yield* remote.authorizeBearer({
-      expectedEnvironmentId: target.environmentId,
-      httpBaseUrl: prepared.bootstrap.httpBaseUrl,
-      wsBaseUrl: prepared.bootstrap.wsBaseUrl,
-      bearerToken: prepared.bearerToken,
-    });
-    return {
-      environmentId: authorized.environmentId,
-      label: authorized.label,
-      httpBaseUrl: authorized.httpBaseUrl,
-      socketUrl: authorized.socketUrl,
-      httpAuthorization: authorized.httpAuthorization,
-      target,
-    } satisfies PreparedConnection;
-  });
-});
-
 export const make = Effect.gen(function* () {
   const primary = yield* makePrimaryBroker();
   const bearer = yield* makeBearerBroker();
-  const ssh = yield* makeSshBroker();
 
   const prepare = Effect.fn("clientRuntime.connection.broker.prepare")(function* (
     entry: ConnectionCatalogEntry,
@@ -202,8 +143,6 @@ export const make = Effect.gen(function* () {
         return yield* primary(target);
       case "BearerConnectionTarget":
         return yield* bearer({ ...entry, target });
-      case "SshConnectionTarget":
-        return yield* ssh({ ...entry, target });
     }
   });
 

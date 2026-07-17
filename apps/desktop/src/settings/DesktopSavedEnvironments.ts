@@ -14,15 +14,7 @@ import * as Ref from "effect/Ref";
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
 import * as ElectronSafeStorage from "../electron/ElectronSafeStorage.ts";
 
-type PersistedSavedEnvironmentDesktopSsh = NonNullable<
-  PersistedSavedEnvironmentRecord["desktopSsh"]
->;
-
-interface PersistedSavedEnvironmentStorageRecord extends Omit<
-  PersistedSavedEnvironmentRecord,
-  "desktopSsh"
-> {
-  readonly desktopSsh?: PersistedSavedEnvironmentDesktopSsh;
+interface PersistedSavedEnvironmentStorageRecord extends PersistedSavedEnvironmentRecord {
   readonly encryptedBearerToken?: string;
 }
 
@@ -36,13 +28,6 @@ interface SavedEnvironmentRegistryStorageDocument {
   readonly records?: readonly PersistedSavedEnvironmentStorageRecord[];
 }
 
-const DesktopSshTargetSchema = Schema.Struct({
-  alias: Schema.String,
-  hostname: Schema.String,
-  username: Schema.NullOr(Schema.String),
-  port: Schema.NullOr(Schema.Number),
-});
-
 const PersistedSavedEnvironmentStorageRecordSchema = Schema.Struct({
   environmentId: EnvironmentId,
   label: Schema.String,
@@ -50,7 +35,6 @@ const PersistedSavedEnvironmentStorageRecordSchema = Schema.Struct({
   wsBaseUrl: Schema.String,
   createdAt: Schema.String,
   lastConnectedAt: Schema.NullOr(Schema.String),
-  desktopSsh: Schema.optionalKey(DesktopSshTargetSchema),
   encryptedBearerToken: Schema.optionalKey(Schema.String),
 });
 
@@ -194,17 +178,13 @@ export class DesktopSavedEnvironments extends Context.Service<
 function toPersistedSavedEnvironmentRecord(
   record: PersistedSavedEnvironmentStorageRecord,
 ): PersistedSavedEnvironmentRecord {
-  const nextRecord = {
+  return {
     environmentId: record.environmentId,
     label: record.label,
     httpBaseUrl: record.httpBaseUrl,
     wsBaseUrl: record.wsBaseUrl,
     createdAt: record.createdAt,
     lastConnectedAt: record.lastConnectedAt,
-  };
-  return {
-    ...nextRecord,
-    ...(record.desktopSsh ? { desktopSsh: record.desktopSsh } : {}),
   };
 }
 
@@ -220,10 +200,9 @@ function toSavedEnvironmentStorageRecord(
     createdAt: record.createdAt,
     lastConnectedAt: record.lastConnectedAt,
   };
-  const metadata = record.desktopSsh ? { desktopSsh: record.desktopSsh } : {};
   return Option.match(encryptedBearerToken, {
-    onNone: () => ({ ...nextRecord, ...metadata }),
-    onSome: (value) => ({ ...nextRecord, ...metadata, encryptedBearerToken: value }),
+    onNone: () => nextRecord,
+    onSome: (value) => ({ ...nextRecord, encryptedBearerToken: value }),
   });
 }
 

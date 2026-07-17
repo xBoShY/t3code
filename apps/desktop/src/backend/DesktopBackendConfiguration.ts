@@ -16,7 +16,7 @@ import serverPackageJson from "../../../server/package.json" with { type: "json"
 
 import * as DesktopBackendManager from "./DesktopBackendManager.ts";
 import * as DesktopEnvironment from "../app/DesktopEnvironment.ts";
-import * as DesktopServerExposure from "./DesktopServerExposure.ts";
+import * as DesktopBackendEndpoint from "./DesktopBackendEndpoint.ts";
 import * as DesktopAppSettings from "../settings/DesktopAppSettings.ts";
 import * as DesktopWslEnvironment from "../wsl/DesktopWslEnvironment.ts";
 
@@ -36,7 +36,7 @@ export class DesktopBackendConfiguration extends Context.Service<
   DesktopBackendConfiguration,
   {
     // Build the Windows-native primary backend's start config. Reads the
-    // primary's port/host/exposure from DesktopServerExposure. Can fail
+    // primary's loopback port/host from DesktopBackendEndpoint. Can fail
     // with PlatformError because bootstrap token generation now uses
     // crypto.randomBytes under the hood (post Effect 4 migration).
     readonly resolvePrimary: Effect.Effect<
@@ -330,21 +330,19 @@ const resolvePrimaryStartConfig = Effect.fn("desktop.backendConfiguration.resolv
   ): Effect.fn.Return<
     DesktopBackendManager.DesktopBackendStartConfig,
     never,
-    DesktopEnvironment.DesktopEnvironment | DesktopServerExposure.DesktopServerExposure
+    DesktopEnvironment.DesktopEnvironment | DesktopBackendEndpoint.DesktopBackendEndpoint
   > {
     const environment = yield* DesktopEnvironment.DesktopEnvironment;
-    const serverExposure = yield* DesktopServerExposure.DesktopServerExposure;
-    const backendExposure = yield* serverExposure.backendConfig;
+    const backendEndpoint = yield* DesktopBackendEndpoint.DesktopBackendEndpoint;
+    const backendConfig = yield* backendEndpoint.backendConfig;
 
     const bootstrap = {
       mode: "desktop" as const,
       noBrowser: true,
-      port: backendExposure.port,
+      port: backendConfig.port,
       t3Home: environment.baseDir,
-      host: backendExposure.bindHost,
+      host: backendConfig.bindHost,
       desktopBootstrapToken: input.bootstrapToken,
-      tailscaleServeEnabled: backendExposure.tailscaleServeEnabled,
-      tailscaleServePort: backendExposure.tailscaleServePort,
       ...buildObservabilityFragment(input.observabilitySettings),
     };
 
@@ -361,7 +359,7 @@ const resolvePrimaryStartConfig = Effect.fn("desktop.backendConfiguration.resolv
       extendEnv: true,
       bootstrap,
       bootstrapDelivery: "fd3",
-      httpBaseUrl: backendExposure.httpBaseUrl,
+      httpBaseUrl: backendConfig.httpBaseUrl,
       captureOutput: true,
       preflightFailure: Option.none(),
     } satisfies DesktopBackendManager.DesktopBackendStartConfig;
@@ -405,12 +403,6 @@ const resolveWslStartConfig = Effect.fn("desktop.backendConfiguration.resolveWsl
     // the SQLite file with the primary).
     host: wslBindHost,
     desktopBootstrapToken: input.bootstrapToken,
-    // PortSchema rejects 0, so when tailscale serve is disabled we still
-    // need a valid number in this slot. The backend reads tailscaleServePort
-    // only when tailscaleServeEnabled is true, so the actual value here is
-    // inert.
-    tailscaleServeEnabled: false,
-    tailscaleServePort: 443,
     ...buildObservabilityFragment(input.observabilitySettings),
   };
 
@@ -558,7 +550,7 @@ const resolveWslStartConfig = Effect.fn("desktop.backendConfiguration.resolveWsl
 export const make = Effect.gen(function* () {
   const environment = yield* DesktopEnvironment.DesktopEnvironment;
   const fileSystem = yield* FileSystem.FileSystem;
-  const serverExposure = yield* DesktopServerExposure.DesktopServerExposure;
+  const backendEndpoint = yield* DesktopBackendEndpoint.DesktopBackendEndpoint;
   const wslEnvironment = yield* DesktopWslEnvironment.DesktopWslEnvironment;
   const settings = yield* DesktopAppSettings.DesktopAppSettings;
   const crypto = yield* Crypto.Crypto;
@@ -600,17 +592,16 @@ export const make = Effect.gen(function* () {
   const buildWslPrimaryConfig = Effect.gen(function* () {
     // wsl-only mode pipes the WSL backend through the same port the
     // Windows primary would normally take. That way the renderer
-    // still loads from the local-only endpoint advertised by
-    // DesktopServerExposure, and primary-aware code paths (cookie
-    // auth, the env switcher's "primary" id) keep working without
-    // a parallel "secondary" registration.
-    const backendExposure = yield* serverExposure.backendConfig;
+    // still loads from the local-only endpoint, and primary-aware code
+    // paths (cookie auth, the env switcher's "primary" id) keep working
+    // without a parallel "secondary" registration.
+    const backendConfig = yield* backendEndpoint.backendConfig;
     const persistedSettings = yield* settings.get;
     const shared = yield* sharedInputs;
     yield* wslEnvironment.preWarm(persistedSettings.wslDistro);
     return yield* resolveWslStartConfig({
       ...shared,
-      port: backendExposure.port,
+      port: backendConfig.port,
       distro: persistedSettings.wslDistro,
     }).pipe(
       Effect.provideService(DesktopEnvironment.DesktopEnvironment, environment),
@@ -623,7 +614,7 @@ export const make = Effect.gen(function* () {
     const shared = yield* sharedInputs;
     return yield* resolvePrimaryStartConfig(shared).pipe(
       Effect.provideService(DesktopEnvironment.DesktopEnvironment, environment),
-      Effect.provideService(DesktopServerExposure.DesktopServerExposure, serverExposure),
+      Effect.provideService(DesktopBackendEndpoint.DesktopBackendEndpoint, backendEndpoint),
     );
   });
 

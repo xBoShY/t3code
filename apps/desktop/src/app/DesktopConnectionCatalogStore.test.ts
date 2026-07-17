@@ -119,26 +119,12 @@ describe("DesktopConnectionCatalogStore", () => {
     ),
   );
 
-  it.effect("migrates legacy SSH, bearer profile, and credential data", () =>
+  it.effect("migrates legacy bearer profile and credential data", () =>
     withStore(
       Effect.gen(function* () {
         const store = yield* DesktopConnectionCatalogStore.DesktopConnectionCatalogStore;
         const savedEnvironments = yield* DesktopSavedEnvironments.DesktopSavedEnvironments;
         const records: readonly PersistedSavedEnvironmentRecord[] = [
-          {
-            environmentId: EnvironmentId.make("ssh-environment"),
-            label: "SSH",
-            httpBaseUrl: "http://127.0.0.1:41773/",
-            wsBaseUrl: "ws://127.0.0.1:41773/",
-            createdAt: "2026-06-02T00:00:00.000Z",
-            lastConnectedAt: null,
-            desktopSsh: {
-              alias: "devbox",
-              hostname: "devbox.example.com",
-              username: "julius",
-              port: 22,
-            },
-          },
           {
             environmentId: EnvironmentId.make("bearer-environment"),
             label: "Bearer",
@@ -164,30 +150,12 @@ describe("DesktopConnectionCatalogStore", () => {
         const catalog = yield* decodeConnectionCatalog(migrated.value);
 
         assert.deepInclude(catalog.targets[0], {
-          _tag: "SshConnectionTarget",
-          environmentId: EnvironmentId.make("ssh-environment"),
-          label: "SSH",
-          connectionId: "ssh:ssh-environment",
-        });
-        assert.deepInclude(catalog.targets[1], {
           _tag: "BearerConnectionTarget",
           environmentId: EnvironmentId.make("bearer-environment"),
           label: "Bearer",
           connectionId: "bearer:bearer-environment",
         });
         assert.deepInclude(catalog.profiles[0], {
-          _tag: "SshConnectionProfile",
-          connectionId: "ssh:ssh-environment",
-          environmentId: EnvironmentId.make("ssh-environment"),
-          label: "SSH",
-          target: {
-            alias: "devbox",
-            hostname: "devbox.example.com",
-            username: "julius",
-            port: 22,
-          },
-        });
-        assert.deepInclude(catalog.profiles[1], {
           _tag: "BearerConnectionProfile",
           connectionId: "bearer:bearer-environment",
           environmentId: EnvironmentId.make("bearer-environment"),

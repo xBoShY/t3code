@@ -12,7 +12,7 @@ import type {
   DesktopBackendSnapshot,
   DesktopBackendStartConfig,
 } from "../backend/DesktopBackendManager.ts";
-import * as DesktopServerExposure from "../backend/DesktopServerExposure.ts";
+import * as DesktopBackendEndpoint from "../backend/DesktopBackendEndpoint.ts";
 import * as DesktopAppSettings from "../settings/DesktopAppSettings.ts";
 import * as DesktopWslEnvironment from "./DesktopWslEnvironment.ts";
 import * as DesktopWslBackend from "./DesktopWslBackend.ts";
@@ -50,20 +50,7 @@ const primarySnapshot: DesktopBackendSnapshot = {
   restartScheduled: false,
 };
 
-const serverExposureLayer = Layer.succeed(DesktopServerExposure.DesktopServerExposure, {
-  getState: Effect.die("unexpected getState"),
-  backendConfig: Effect.succeed({
-    port: 3773,
-    bindHost: "127.0.0.1",
-    httpBaseUrl: new URL("http://127.0.0.1:3773"),
-    tailscaleServeEnabled: false,
-    tailscaleServePort: 443,
-  }),
-  configureFromSettings: () => Effect.die("unexpected configureFromSettings"),
-  setMode: () => Effect.die("unexpected setMode"),
-  setTailscaleServeEnabled: () => Effect.die("unexpected setTailscaleServeEnabled"),
-  getAdvertisedEndpoints: Effect.succeed([]),
-} satisfies DesktopServerExposure.DesktopServerExposure["Service"]);
+const backendEndpointLayer = DesktopBackendEndpoint.layerTest(3773);
 
 const backendConfigurationLayer = Layer.succeed(
   DesktopBackendConfiguration.DesktopBackendConfiguration,
@@ -138,7 +125,7 @@ describe("DesktopWslBackend", () => {
         DesktopWslBackend.layer.pipe(
           Layer.provideMerge(poolLayer),
           Layer.provideMerge(backendConfigurationLayer),
-          Layer.provideMerge(serverExposureLayer),
+          Layer.provideMerge(backendEndpointLayer),
           Layer.provideMerge(netLayer),
           Layer.provideMerge(
             DesktopAppSettings.layerTest({
@@ -181,7 +168,7 @@ describe("DesktopWslBackend", () => {
         DesktopWslBackend.layer.pipe(
           Layer.provideMerge(DesktopBackendPool.layerTest([primary, wsl])),
           Layer.provideMerge(backendConfigurationLayer),
-          Layer.provideMerge(serverExposureLayer),
+          Layer.provideMerge(backendEndpointLayer),
           Layer.provideMerge(netLayer),
           Layer.provideMerge(
             DesktopAppSettings.layerTest({

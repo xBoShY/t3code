@@ -39,8 +39,6 @@ const baseConfig: DesktopBackendManager.DesktopBackendStartConfig = {
     t3Home: "/tmp/t3",
     host: "127.0.0.1",
     desktopBootstrapToken: "token",
-    tailscaleServeEnabled: false,
-    tailscaleServePort: 443,
   },
   bootstrapDelivery: "fd3",
   extendEnv: true,
@@ -51,7 +49,6 @@ const baseConfig: DesktopBackendManager.DesktopBackendStartConfig = {
 
 const configWithObservability: DesktopBackendBootstrapValue = {
   ...baseConfig.bootstrap,
-  tailscaleServeEnabled: true,
   otlpTracesUrl: "http://127.0.0.1:4318/v1/traces",
 };
 
