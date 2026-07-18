@@ -1230,7 +1230,7 @@ function ChatViewContent(props: ChatViewProps) {
             threadId,
             draftThread,
             fallbackDraftProject?.defaultModelSelection ?? {
-              instanceId: ProviderInstanceId.make("codex"),
+              instanceId: ProviderInstanceId.make("pi"),
               model: DEFAULT_MODEL,
             },
           )
@@ -1721,7 +1721,7 @@ function ChatViewContent(props: ChatViewProps) {
   const providerStatuses = serverConfig?.providers ?? EMPTY_PROVIDERS;
   const unlockedSelectedProvider = resolveSelectableProvider(
     providerStatuses,
-    selectedProviderByThreadId ?? threadProvider ?? ProviderDriverKind.make("codex"),
+    selectedProviderByThreadId ?? threadProvider ?? ProviderDriverKind.make("pi"),
   );
   const selectedProvider: ProviderDriverKind = lockedProvider ?? unlockedSelectedProvider;
   const phase = derivePhase(activeThread?.session ?? null);

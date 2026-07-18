@@ -162,7 +162,7 @@ export const launchStartupHeartbeat = recordStartupHeartbeat.pipe(
 );
 
 export const getAutoBootstrapDefaultModelSelection = (): ModelSelection => ({
-  instanceId: ProviderInstanceId.make("codex"),
+  instanceId: ProviderInstanceId.make("pi"),
   model: DEFAULT_MODEL,
 });
 

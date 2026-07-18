@@ -1157,7 +1157,7 @@ function OpenCommandPaletteDialog(props: {
           workspaceRoot: cwd,
           createWorkspaceRootIfMissing: true,
           defaultModelSelection: {
-            instanceId: ProviderInstanceId.make("codex"),
+            instanceId: ProviderInstanceId.make("pi"),
             model: DEFAULT_MODEL,
           },
         },

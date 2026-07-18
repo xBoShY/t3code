@@ -216,7 +216,7 @@ export function buildProjectCreateCommand(input: {
     workspaceRoot: input.workspaceRoot,
     createWorkspaceRootIfMissing: true,
     defaultModelSelection: {
-      instanceId: ProviderInstanceId.make("codex"),
+      instanceId: ProviderInstanceId.make("pi"),
       model: DEFAULT_MODEL,
     },
     createdAt: input.createdAt,

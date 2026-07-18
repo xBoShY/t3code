@@ -166,8 +166,7 @@ function derivePendingUserInputCountFromActivities(
       detail !== null &&
       (detail.includes("stale pending user-input request") ||
         detail.includes("unknown pending user-input request") ||
-        detail.includes("unknown pending user input request") ||
-        detail.includes("unknown pending codex user input request"))
+        detail.includes("unknown pending user input request"))
     ) {
       openRequestIds.delete(requestId);
     }

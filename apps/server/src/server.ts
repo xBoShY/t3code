@@ -24,7 +24,6 @@ import { ProviderAdapterRegistryLive } from "./provider/Layers/ProviderAdapterRe
 import * as ProviderEventLoggers from "./provider/Layers/ProviderEventLoggers.ts";
 import { ProviderServiceLive } from "./provider/Layers/ProviderService.ts";
 import { ProviderSessionReaperLive } from "./provider/Layers/ProviderSessionReaper.ts";
-import * as OpenCodeRuntime from "./provider/opencodeRuntime.ts";
 import * as PiRuntime from "./provider/piRuntime.ts";
 import * as CheckpointDiffQuery from "./checkpointing/CheckpointDiffQuery.ts";
 import * as CheckpointStore from "./checkpointing/CheckpointStore.ts";
@@ -260,16 +259,11 @@ const ProviderRuntimeLayerLive = ProviderSessionReaperLive.pipe(
   Layer.provideMerge(OrchestrationLayerLive),
 );
 
-// `OpenCodeDriver.create()` and `PiDriver.create()` each yield their own
-// runtime service; previously the old `ProviderRegistryLive` pulled
-// `OpenCodeRuntimeLive` in for itself, but the rewritten registry reads
-// snapshots off the instance registry and no longer transitively provides
-// it. Exposing both runtimes at the runtime level keeps a single Live for
-// all opencode/pi consumers.
-const ProviderRuntimeServicesLive = Layer.mergeAll(
-  OpenCodeRuntime.OpenCodeRuntimeLive,
-  PiRuntime.PiRuntimeLive,
-);
+// `PiDriver.create()` yields its own runtime service; the rewritten registry
+// reads snapshots off the instance registry and no longer transitively
+// provides it. Exposing the runtime at the runtime level keeps a single Live
+// for all pi consumers.
+const ProviderRuntimeServicesLive = Layer.mergeAll(PiRuntime.PiRuntimeLive);
 
 const RuntimeCoreDependenciesLive = ReactorLayerLive.pipe(
   // Core Services

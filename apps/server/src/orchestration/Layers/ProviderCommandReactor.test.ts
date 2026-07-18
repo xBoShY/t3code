@@ -1950,9 +1950,9 @@ describe("ProviderCommandReactor", () => {
     harness.respondToUserInput.mockImplementation(() =>
       Effect.fail(
         new ProviderAdapterRequestError({
-          provider: ProviderDriverKind.make("claudeAgent"),
+          provider: ProviderDriverKind.make("pi"),
           method: "item/tool/respondToUserInput",
-          detail: "Unknown pending Codex user input request: user-input-request-1",
+          detail: "Unknown pending user input request: user-input-request-1",
         }),
       ),
     );

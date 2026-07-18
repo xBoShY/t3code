@@ -1,6 +1,5 @@
 import {
   DEFAULT_MODEL,
-  DEFAULT_MODEL_BY_PROVIDER,
   ProviderDriverKind,
   ProviderInstanceId,
   type ServerProvider,
@@ -311,25 +310,19 @@ describe("provider default model resolution", () => {
     ).toBe("claude-haiku-4-5");
   });
 
-  it("keeps fallback defaults for providers with fallback models", () => {
-    expect(
-      getDefaultServerModel(
-        [provider({ provider: ProviderDriverKind.make("codex"), instanceId: "codex", models: [] })],
-        ProviderDriverKind.make("codex"),
-      ),
-    ).toBe(DEFAULT_MODEL);
+  it("falls back to the global default model for providers without discovered models", () => {
     expect(
       getDefaultServerModel(
         [
           provider({
-            provider: ProviderDriverKind.make("claudeAgent"),
-            instanceId: "claudeAgent",
+            provider: ProviderDriverKind.make("forkonly"),
+            instanceId: "forkonly",
             models: [],
           }),
         ],
-        ProviderDriverKind.make("claudeAgent"),
+        ProviderDriverKind.make("forkonly"),
       ),
-    ).toBe(DEFAULT_MODEL_BY_PROVIDER[ProviderDriverKind.make("claudeAgent")]);
+    ).toBe(DEFAULT_MODEL);
   });
 
   it("uses the first real Pi model when discovery succeeds", () => {

@@ -31,26 +31,6 @@ export const PROVIDER_OPTIONS: Array<{
   /** Shown on the model picker sidebar when relevant */
   pickerSidebarBadge?: "new" | "soon";
 }> = [
-  { value: ProviderDriverKind.make("codex"), label: "Codex", available: true },
-  { value: ProviderDriverKind.make("claudeAgent"), label: "Claude", available: true },
-  {
-    value: ProviderDriverKind.make("opencode"),
-    label: "OpenCode",
-    available: true,
-    pickerSidebarBadge: "new",
-  },
-  {
-    value: ProviderDriverKind.make("cursor"),
-    label: "Cursor",
-    available: true,
-    pickerSidebarBadge: "new",
-  },
-  {
-    value: ProviderDriverKind.make("grok"),
-    label: "Grok",
-    available: true,
-    pickerSidebarBadge: "new",
-  },
   {
     value: ProviderDriverKind.make("pi"),
     label: "Pi",
@@ -353,8 +333,7 @@ function isStalePendingRequestFailureDetail(detail: string | undefined): boolean
     normalized.includes("unknown pending approval request") ||
     normalized.includes("unknown pending permission request") ||
     normalized.includes("unknown pending user-input request") ||
-    normalized.includes("unknown pending user input request") ||
-    normalized.includes("unknown pending codex user input request")
+    normalized.includes("unknown pending user input request")
   );
 }
 

@@ -144,15 +144,13 @@ function isUnknownPendingUserInputRequestError(cause: Cause.Cause<ProviderServic
     const detail = error.detail.toLowerCase();
     return (
       detail.includes("unknown pending user-input request") ||
-      detail.includes("unknown pending user input request") ||
-      detail.includes("unknown pending codex user input request")
+      detail.includes("unknown pending user input request")
     );
   }
   const message = Cause.pretty(cause).toLowerCase();
   return (
     message.includes("unknown pending user-input request") ||
-    message.includes("unknown pending user input request") ||
-    message.includes("unknown pending codex user input request")
+    message.includes("unknown pending user input request")
   );
 }
 

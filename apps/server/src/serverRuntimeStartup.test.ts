@@ -16,9 +16,9 @@ import * as ProjectionSnapshotQuery from "./orchestration/Services/ProjectionSna
 import * as AnalyticsService from "./telemetry/AnalyticsService.ts";
 import * as ServerRuntimeStartup from "./serverRuntimeStartup.ts";
 
-it("uses the canonical Codex default for auto-bootstrapped model selection", () => {
+it("uses the canonical Pi default for auto-bootstrapped model selection", () => {
   assert.deepStrictEqual(ServerRuntimeStartup.getAutoBootstrapDefaultModelSelection(), {
-    instanceId: ProviderInstanceId.make("codex"),
+    instanceId: ProviderInstanceId.make("pi"),
     model: DEFAULT_MODEL,
   });
 });
