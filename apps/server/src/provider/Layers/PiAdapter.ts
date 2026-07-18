@@ -64,9 +64,9 @@ const PROVIDER = ProviderDriverKind.make("pi");
 const encodeJsonStringExit = Schema.encodeUnknownExit(Schema.UnknownFromJsonString);
 const PI_MCP_BRIDGE_TOKEN_ENV = "T3_MCP_BEARER_TOKEN";
 const PI_T3_BROWSER_SYSTEM_PROMPT = `
-## T3 Code collaborative browser
+## SIBS Code collaborative browser
 
-T3 Code exposes its in-app collaborative browser through the configured MCP server named "t3-code".
+SIBS Code exposes its in-app collaborative browser through the configured MCP server named "t3-code".
 
 For browser work, first try direct preview tools such as preview_status, preview_open, preview_navigate, and preview_snapshot if they are available.
 
@@ -962,7 +962,7 @@ export function makePiAdapter(piSettings: PiSettings, options?: PiAdapterLiveOpt
             cwd: directory,
             ...(spawnEnvironment ? { environment: spawnEnvironment } : {}),
             runtimeMode: input.runtimeMode,
-            sessionName: `T3 Code ${input.threadId}`,
+            sessionName: `SIBS Code ${input.threadId}`,
             ...(input.modelSelection ? { modelSlug: input.modelSelection.model } : {}),
             ...(thinkingLevel ? { thinkingLevel } : {}),
             approvalExtensionPath,

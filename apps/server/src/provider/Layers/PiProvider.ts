@@ -141,7 +141,7 @@ export const buildInitialPiProviderSnapshot = (
         auth: { status: "unknown" },
         message: piSettings.enabled
           ? "Pi provider status has not been checked in this session yet."
-          : "Pi is disabled in T3 Code settings.",
+          : "Pi is disabled in SIBS Code settings.",
       },
     });
   });
@@ -179,7 +179,7 @@ export const checkPiProviderStatus = Effect.fn("checkPiProviderStatus")(function
         version: null,
         status: "warning",
         auth: { status: "unknown" },
-        message: "Pi is disabled in T3 Code settings.",
+        message: "Pi is disabled in SIBS Code settings.",
       },
     });
   }

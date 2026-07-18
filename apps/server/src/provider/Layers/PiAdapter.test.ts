@@ -266,7 +266,7 @@ it.layer(PiAdapterTestLayer)("PiAdapterLive", (it) => {
         events.map((event) => event.type),
         ["session.started", "thread.started", "session.exited"],
       );
-      NodeAssert.deepEqual(runtimeMock.state.closeCalls, [`T3 Code ${threadId}`]);
+      NodeAssert.deepEqual(runtimeMock.state.closeCalls, [`SIBS Code ${threadId}`]);
     }),
   );
 
@@ -290,7 +290,7 @@ it.layer(PiAdapterTestLayer)("PiAdapterLive", (it) => {
       NodeAssert.equal(sessions.length, 1);
       NodeAssert.equal(sessions[0], secondSession);
       NodeAssert.equal(runtimeMock.state.handles.length, 2);
-      NodeAssert.deepEqual(runtimeMock.state.closeCalls, [`T3 Code ${threadId}`]);
+      NodeAssert.deepEqual(runtimeMock.state.closeCalls, [`SIBS Code ${threadId}`]);
     }),
   );
 
@@ -306,7 +306,7 @@ it.layer(PiAdapterTestLayer)("PiAdapterLive", (it) => {
       NodeAssert.equal(error._tag, "ProviderAdapterProcessError");
       NodeAssert.match(error.detail, /Pi returned malformed state data/);
       NodeAssert.match(error.detail, /stderr: startup crash detail/);
-      NodeAssert.deepEqual(runtimeMock.state.closeCalls, [`T3 Code ${threadId}`]);
+      NodeAssert.deepEqual(runtimeMock.state.closeCalls, [`SIBS Code ${threadId}`]);
     }),
   );
 
@@ -445,7 +445,7 @@ it.layer(PiAdapterTestLayer)("PiAdapterLive", (it) => {
         exitKind: "error",
       });
       NodeAssert.equal(yield* adapter.hasSession(threadId), false);
-      NodeAssert.deepEqual(runtimeMock.state.closeCalls, [`T3 Code ${threadId}`]);
+      NodeAssert.deepEqual(runtimeMock.state.closeCalls, [`SIBS Code ${threadId}`]);
     }),
   );
 
