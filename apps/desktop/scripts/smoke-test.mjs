@@ -41,6 +41,12 @@ child.on("exit", () => {
     "Uncaught Error",
     "Uncaught TypeError",
     "Uncaught ReferenceError",
+    // The renderer serves its own bundle over the custom desktop scheme. If the
+    // scheme is misconfigured (e.g. not registered privileged), the app's
+    // scripts/styles get blocked and React never mounts — the window is stuck on
+    // the static boot placeholder. These console messages are that failure.
+    "has been blocked by CORS policy",
+    "violates the following Content Security Policy",
   ];
   const failures = fatalPatterns.filter((pattern) => output.includes(pattern));
 

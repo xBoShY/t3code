@@ -46,6 +46,28 @@ import * as DesktopWindow from "./window/DesktopWindow.ts";
 import * as DesktopWslBackend from "./wsl/DesktopWslBackend.ts";
 import * as DesktopWslEnvironment from "./wsl/DesktopWslEnvironment.ts";
 
+// Register the custom desktop schemes as privileged BEFORE the app becomes
+// ready. Without this a document served over the scheme gets an opaque `null`
+// origin, which breaks CSP `'self'` matching and makes the renderer's own
+// module scripts fail the CORS preflight ("Cross origin requests are only
+// supported for protocol schemes: chrome, ..., http, https"). Marking the
+// schemes standard + secure + CORS-enabled gives them a real `scheme://host`
+// origin so the SPA bundle loads and React can mount.
+Electron.protocol.registerSchemesAsPrivileged(
+  [ElectronProtocol.DESKTOP_PRODUCTION_SCHEME, ElectronProtocol.DESKTOP_DEVELOPMENT_SCHEME].map(
+    (scheme) => ({
+      scheme,
+      privileges: {
+        standard: true,
+        secure: true,
+        supportFetchAPI: true,
+        corsEnabled: true,
+        stream: true,
+      },
+    }),
+  ),
+);
+
 const desktopEnvironmentLayer = Layer.unwrap(
   Effect.gen(function* () {
     const metadata = yield* Effect.service(ElectronApp.ElectronApp).pipe(
