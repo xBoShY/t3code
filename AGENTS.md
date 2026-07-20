@@ -7,7 +7,10 @@
 
 ## Project Snapshot
 
-SIBS Code is a minimal web GUI for using coding agents like Codex and Claude.
+SIBS Code is a desktop-only fork of t3code that ships a single coding-agent
+provider: Pi (pi.dev), driven over Pi's native RPC mode (`pi --mode rpc`). The
+other upstream providers (Claude, Codex, Cursor, Grok, OpenCode) and the
+mobile/marketing/cloud-relay/SSH surfaces have been removed.
 
 This repository is a VERY EARLY WIP. Proposing sweeping changes that improve long-term maintainability is encouraged.
 
@@ -25,7 +28,7 @@ Long term maintainability is a core priority. If you add new functionality, firs
 
 ## Package Roles
 
-- `apps/server`: Node.js WebSocket server. Wraps Codex app-server (JSON-RPC over stdio), serves the React web app, and manages provider sessions.
+- `apps/server`: Node.js WebSocket server. Spawns the Pi agent (`pi --mode rpc`, NDJSON over stdio), serves the React web app, and manages provider sessions. The Pi provider lives in `apps/server/src/provider/` (`Drivers/PiDriver`, `Layers/PiAdapter`, `Layers/PiProvider`, `piRuntime`).
 - `apps/web`: React/Vite UI. Owns session UX, conversation/event rendering, and client-side state. Connects to the server via WebSocket.
 - `packages/contracts`: Shared effect/Schema schemas and TypeScript contracts for provider events, WebSocket protocol, and model/session types. Keep this package schema-only — no runtime logic.
 - `packages/shared`: Shared runtime utilities consumed by both server and client applications. Uses explicit subpath exports (e.g. `@t3tools/shared/git`) — no barrel index.
@@ -33,10 +36,8 @@ Long term maintainability is a core priority. If you add new functionality, firs
 
 ## Reference Repos
 
-- Open-source Codex repo: https://github.com/openai/codex
-- Codex-Monitor (Tauri, feature-complete, strong reference implementation): https://github.com/Dimillian/CodexMonitor
-
-Use these as implementation references when designing protocol handling, UX flows, and operational safeguards.
+- Pi coding agent: https://github.com/earendil-works/pi — see its `docs/rpc.md`
+  for the RPC event/command protocol the Pi provider maps onto.
 
 ## Vendored Repositories
 
@@ -46,7 +47,7 @@ agents.
 - Prefer examples and patterns from the vendored source code over generated guesses or web search results.
 - Do not edit files under `.repos/` unless explicitly asked.
 - Do not import from `.repos/`; application code must continue importing from normal package dependencies.
-- Manage vendored subtrees with `bun run sync:repos`; use `bun run sync:repos --repo <id>` to sync one
+- Manage vendored subtrees with `pnpm sync:repos`; use `pnpm sync:repos --repo <id>` to sync one
   configured repository.
 - When updating a dependency with a configured vendored subtree, sync that subtree in the same change so
   `.repos/` matches the installed dependency version.

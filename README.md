@@ -1,90 +1,71 @@
 # SIBS Code
 
-SIBS Code is a minimal web GUI for coding agents (currently Codex, Claude, Cursor, and OpenCode, more coming soon).
+SIBS Code is a desktop app for the [Pi](https://pi.dev) coding agent. It is a
+stripped-down, desktop-only fork of [t3code](https://github.com/pingdotgg/t3code)
+that ships a single provider — Pi — driven over Pi's native RPC mode.
 
-## Installation
+## Requirements
 
-> [!WARNING]
-> SIBS Code currently supports Codex, Claude, Cursor, and OpenCode.
-> Install and authenticate at least one provider before use:
->
-> - Codex: install [Codex CLI](https://developers.openai.com/codex/cli) and run `codex login`
-> - Claude: install [Claude Code](https://claude.com/product/claude-code) and run `claude auth login`
-> - Cursor: install [Cursor CLI](https://cursor.com/cli) and run `cursor-agent login`
-> - OpenCode: install [OpenCode](https://opencode.ai) and run `opencode auth login`
-
-### Run without installing
+SIBS Code drives the `pi` CLI, so you need it installed and authenticated:
 
 ```bash
-npx t3@latest
+npm install -g @earendil-works/pi-coding-agent
+pi                       # then run /login, pick a provider, and authenticate
 ```
 
-Tip: Use `npx t3@latest --help` for the full CLI reference.
-
-### Desktop app
-
-Install the latest version of the desktop app from [GitHub Releases](https://github.com/pingdotgg/t3code/releases), or from your favorite package registry:
-
-#### Windows (`winget`)
+Verify Pi can reach a model before launching the app:
 
 ```bash
-winget install T3Tools.T3Code
+printf 'hi\n/exit\n' | pi
 ```
 
-#### macOS (Homebrew)
+## Run from source
+
+This fork is not published to a package registry; build and run it locally.
+[go-task](https://taskfile.dev) wraps the common workflows (run `task --list`),
+over the underlying pnpm scripts.
 
 ```bash
-brew install --cask t3-code
+corepack pnpm install          # or: task install
+task dev                       # build + launch the desktop app (hot reload)
 ```
 
-#### Arch Linux (AUR)
+Other useful tasks:
 
 ```bash
-yay -S t3code-bin
+task start:desktop             # launch the built app (runs ensure:electron first)
+task build:desktop             # compile only (apps/server/dist + apps/desktop/dist-electron)
+task dist:linux                # package an installer -> release/ (also dist:mac, dist:win)
+task check                     # typecheck + lint + test
 ```
 
-## Some notes
+In the app, enable **Pi** under Settings → Providers, then start a thread.
 
-We are very very early in this project. Expect bugs.
+## Notes
 
-We are not accepting contributions yet.
+This is a very early work in progress. Expect bugs.
 
-There's no public docs site yet, checkout the miscellaneous markdown files in [docs](./docs).
+Internal identifiers from upstream are unchanged (the `t3code://` app scheme,
+`com.t3tools.t3code` app id, and `~/.config/t3code` / `~/.t3` data directories),
+so no data migration is needed when moving between builds.
 
 ## Documentation
 
+There's no docs site; browse the markdown under [docs](./docs):
+
 - [Getting started](./docs/getting-started/quick-start.md)
 - [Architecture overview](./docs/architecture/overview.md)
-- [Provider guides](./docs/providers/codex.md)
 - [Operations](./docs/operations/ci.md)
 - [Reference](./docs/reference/encyclopedia.md)
 
-## If you REALLY want to contribute still.... read this first
+## Development
 
-### Install `vp`
-
-SIBS Code uses Vite+ so you'll need to install the global `vp` command-line tool.
-
-#### macOS / Linux
+SIBS Code uses [Vite+](https://viteplus.dev), so the `vp` CLI is required for
+the underlying build/test tooling (the `task` targets and pnpm scripts call it):
 
 ```bash
+# macOS / Linux
 curl -fsSL https://vite.plus | bash
-```
-
-#### Windows
-
-```bash
+# Windows
 irm https://vite.plus/ps1 | iex
 ```
-
-Checkout their getting started guide for more information: https://viteplus.dev/guide/
-
-### Install dependencies
-
-```bash
-vp i
-```
-
-Read [CONTRIBUTING.md](./CONTRIBUTING.md) before opening an issue or PR.
-
-Need support? Join the [Discord](https://discord.gg/jn4EGJjrvv).
