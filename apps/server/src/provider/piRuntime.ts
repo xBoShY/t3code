@@ -207,6 +207,9 @@ export const PiThreadMessage = Schema.Struct({
   role: Schema.String,
   stopReason: Schema.optionalKey(Schema.String),
   content: Schema.optionalKey(PiMessageContent),
+  // Present when stopReason is "error"; carries the raw provider error, e.g.
+  // `401 {"type":"error","error":{"message":"API key is invalid."}...}`.
+  errorMessage: Schema.optionalKey(Schema.String),
 });
 export type PiThreadMessage = typeof PiThreadMessage.Type;
 

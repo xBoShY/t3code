@@ -712,6 +712,44 @@ it.layer(PiAdapterTestLayer)("PiAdapterLive", (it) => {
     }),
   );
 
+  it.effect("surfaces the Pi provider error message on a failed turn", () =>
+    Effect.gen(function* () {
+      const adapter = yield* PiAdapter;
+      const threadId = asThreadId("thread-pi-failed-turn");
+      const eventsFiber = yield* adapter.streamEvents.pipe(
+        Stream.filter((event) => event.threadId === threadId),
+        Stream.takeUntil((event) => event.type === "turn.completed"),
+        Stream.runCollect,
+        Effect.forkChild,
+      );
+      yield* startPiSession(adapter, threadId);
+      yield* adapter.sendTurn({ threadId, input: "Say hello" });
+      const handle = runtimeMock.state.handles[0];
+      if (!handle) throw new Error("missing fake Pi handle");
+
+      // Pi reports a failed model call as an assistant message with empty
+      // content, stopReason "error", and the raw provider error on errorMessage.
+      yield* Queue.offer(handle.eventsQueue, {
+        type: "message_end",
+        message: {
+          role: "assistant",
+          content: [],
+          stopReason: "error",
+          errorMessage:
+            '401 {"type":"error","error":{"type":"authentication_error","message":"API key is invalid."},"request_id":null}',
+        },
+      });
+      yield* Queue.offer(handle.eventsQueue, { type: "agent_end" });
+
+      const events = Array.from(yield* Fiber.join(eventsFiber));
+      const completed = events.find((event) => event.type === "turn.completed");
+      NodeAssert.deepEqual(completed?.payload, {
+        state: "failed",
+        errorMessage: "401: API key is invalid.",
+      });
+    }),
+  );
+
   it.effect("classifies MCP tools and gives missing Pi tool ids unique fallback item ids", () =>
     Effect.gen(function* () {
       const adapter = yield* PiAdapter;

@@ -126,6 +126,7 @@ interface PiSessionContext {
   currentModelSlug: string | undefined;
   currentThinking: string | undefined;
   lastStopReason: string | undefined;
+  lastStopErrorMessage: string | undefined;
   messageSequence: number;
   toolSequence: number;
   compactionSequence: number;
@@ -165,6 +166,29 @@ function toolDetailFromArgs(toolName: string, args: unknown): string | undefined
   if ("path" in args && typeof args.path === "string") return args.path;
   if ("file_path" in args && typeof args.file_path === "string") return args.file_path;
   return undefined;
+}
+
+// Pi reports a failed model call as `stopReason: "error"` with the raw provider
+// error on `errorMessage`, e.g. `401 {"error":{"message":"API key is
+// invalid."}...}`. Extract the human-readable inner message when possible so the
+// UI shows "401: API key is invalid." instead of a generic failure.
+function formatPiErrorMessage(raw: string | undefined): string | undefined {
+  const trimmed = raw?.trim();
+  if (!trimmed) return undefined;
+  const braceIndex = trimmed.indexOf("{");
+  if (braceIndex >= 0) {
+    try {
+      const parsed = JSON.parse(trimmed.slice(braceIndex)) as { error?: { message?: unknown } };
+      const inner = parsed.error?.message;
+      if (typeof inner === "string" && inner.trim().length > 0) {
+        const prefix = trimmed.slice(0, braceIndex).trim();
+        return prefix.length > 0 ? `${prefix}: ${inner.trim()}` : inner.trim();
+      }
+    } catch {
+      // Not JSON — fall through to the raw string.
+    }
+  }
+  return trimmed;
 }
 
 function textFromContentBlocks(content: PiMessageContent | undefined): string {
@@ -747,6 +771,8 @@ export function makePiAdapter(piSettings: PiSettings, options?: PiAdapterLiveOpt
           const message = event.message;
           if (message.role !== "assistant") break;
           context.lastStopReason = message.stopReason;
+          context.lastStopErrorMessage =
+            message.stopReason === "error" ? formatPiErrorMessage(message.errorMessage) : undefined;
           const text = textFromContentBlocks(message.content);
           if (text.length > 0) {
             yield* emit({
@@ -817,13 +843,18 @@ export function makePiAdapter(piSettings: PiSettings, options?: PiAdapterLiveOpt
           if (context.activeTurnId !== endedTurnId) break;
           context.activeTurnId = undefined;
           const failed = context.lastStopReason === "error";
+          const failureMessage = context.lastStopErrorMessage;
           context.lastStopReason = undefined;
+          context.lastStopErrorMessage = undefined;
           yield* updateProviderSession(context, { status: "ready" }, { clearActiveTurnId: true });
           yield* emit({
             ...(yield* buildEventBase({ threadId, turnId: endedTurnId })),
             type: "turn.completed",
             payload: failed
-              ? { state: "failed", errorMessage: "Pi reported an error while completing the turn." }
+              ? {
+                  state: "failed",
+                  errorMessage: failureMessage ?? "Pi reported an error while completing the turn.",
+                }
               : { state: "completed" },
           });
           yield* emitTokenUsage(context);
@@ -1082,6 +1113,7 @@ export function makePiAdapter(piSettings: PiSettings, options?: PiAdapterLiveOpt
           currentModelSlug: input.modelSelection?.model,
           currentThinking: thinkingLevel,
           lastStopReason: undefined,
+          lastStopErrorMessage: undefined,
           messageSequence: 0,
           toolSequence: 0,
           compactionSequence: 0,
@@ -1255,6 +1287,7 @@ export function makePiAdapter(piSettings: PiSettings, options?: PiAdapterLiveOpt
           abortedTurnId !== undefined && context.activeTurnId !== abortedTurnId;
         context.activeTurnId = undefined;
         context.lastStopReason = undefined;
+        context.lastStopErrorMessage = undefined;
         yield* updateProviderSession(context, { status: "ready" }, { clearActiveTurnId: true });
         if (abortedTurnId && !turnCompletedMeanwhile) {
           yield* emit({
